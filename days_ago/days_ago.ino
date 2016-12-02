@@ -8,16 +8,16 @@ unsigned long overflowTime;
 #define MINUTE (1000ul * 60ul)
 
 byte codes[] = {
-  0x3F, //B00111111,
-  0x06, //B00000110,
-  0x5B, //B01011011,
-  0x4F, //B01001111,
-  0x66, //B01100110,
-  0x6D, //B01101101,
-  0x7D, //B01111101,
-  0x07, //B00000111,
-  0x7F, //B01111111,
-  0x6F, //B01101111
+  0x3F, //00111111,
+  0x06, //00000110,
+  0x5B, //01011011,
+  0x4F, //01001111,
+  0x66, //01100110,
+  0x6D, //01101101,
+  0x7D, //01111101,
+  0x07, //00000111,
+  0x7F, //01111111,
+  0x6F, //01101111
 };
 
 #define DIGITS 2
@@ -28,7 +28,7 @@ int segmentPins[DIGITS][SEGMENTS] = {
   {10,11,12,13,14,15,16}
 };
 
-int resetPin = 2;
+int resetPin = 2; // only 2 and 3 can be used w/ interrupt on mini
 
 void reset() {
   lastCheck = offset = millis();
@@ -81,7 +81,6 @@ void loop() {
     : (overflowTime / DAY * overflows) - (offset - t) / DAY;
 
   if (newDays != days) {
-    //printf("overflows: %lu, overflowTime: %lu, t: %lu, offset: %lu\n", overflows, overflowTime, t, offset);
     setDays(newDays);
   }
 

@@ -1,5 +1,12 @@
 #ifdef SIM
 
+/**
+   This file is just a simple wrapper around the actual arduino file
+   to run w/o a board. It mocks a bunch of arduino functions to be
+   able to compile the sketch and print out the results of running the
+   program.
+*/
+
 #include <stdio.h>
 
 #define RISING 0
@@ -15,6 +22,7 @@ typedef char byte;
 unsigned long _millis = 0;
 
 unsigned long millis() {
+  // wrap around every 50 days
   return _millis % (1000ul*60ul*60ul*24ul*50ul);
 }
 
@@ -22,7 +30,7 @@ int digitalPinToInterrupt(int p) {
   return 0;
 }
 
-void (*_a)();
+void (*_a)(); // reset callback
 
 void attachInterrupt(int p, void (*a)(), int m) {
   _a = a;
@@ -43,6 +51,10 @@ int last = 0;
 byte b = 0x01 << 6;
 byte codes[];
 
+/**
+   These writes are used for the 7 segment display only. So every 7
+   writes look up what was printed.
+*/
 void digitalWrite(int p, int v) {
   b = (b>>1) | (v<<6);
   if (++cnt == 7) {
@@ -69,12 +81,18 @@ void loop();
 void reset();
 
 int main(int argc, char **argv) {
+
   setup();
+
   for (int i = 1; i < 3; i++) {
+
+    // simulate 200 days of runtime
     while(_millis < i*200ul*1000*60*60*24) {
       _millis += 1;
       loop();
     }
+
+    // simulate pressing the reset.
     _a();
   }
   return 0;
