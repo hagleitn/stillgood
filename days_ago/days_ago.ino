@@ -1,5 +1,6 @@
 unsigned long offset;
 unsigned long lastCheck;
+unsigned long lastLoop;
 unsigned long days;
 unsigned long overflows;
 unsigned long overflowTime;
@@ -23,16 +24,15 @@ byte codes[] = {
 #define DIGITS 2
 #define SEGMENTS 7
 
-int segmentPins[DIGITS][SEGMENTS] = {
-  {3,4,5,6,7,8,9},
-  {10,11,12,13,14,15,16}
-};
+int segmentSelector[DIGITS] = {10,11};
+
+int segmentPins[SEGMENTS] = {3,4,5,6,7,8,9};
 
 int resetPin = 2; // only 2 and 3 can be used w/ interrupt on mini
 
 void reset() {
   lastCheck = offset = millis();
-  days = -1;
+  days = 0;
   overflows = 0;
   overflowTime = 0;
 }
@@ -41,9 +41,11 @@ void setup() {
   reset();
 
   for (int i = 0; i < DIGITS; i++) {
-    for (int j = 0; j < SEGMENTS; j++) {
-      pinMode(segmentPins[i][j], OUTPUT);
-    }
+    pinMode(segmentSelector[i], OUTPUT);
+  }
+
+  for (int i = 0; i < SEGMENTS; i++) {
+    pinMode(segmentPins[i], OUTPUT);
   }
 
   pinMode(resetPin, INPUT_PULLUP);
@@ -58,32 +60,34 @@ void setDays(unsigned long day) {
     digit = day % 10;
     index = 0x01;
 
+    for (int j = 0; j < DIGITS; j++) {
+      digitalWrite(segmentSelector[j], i == j ? HIGH : LOW);
+    }
+
     for (int j = 0; j < SEGMENTS; j++) {
-      digitalWrite(segmentPins[i][j], codes[digit] & index ? HIGH : LOW);
+      digitalWrite(segmentPins[j], codes[digit] & index ? LOW : HIGH);
       index <<= 1;
     }
 
+    delay(2);
     day /= 10;
   }
 }
 
 void loop() {
-  delay(MINUTE);
   unsigned long t = millis();
 
   if (t < lastCheck) {
     overflows++;
-    overflowTime = lastCheck;
+    overflowTime = lastLoop;
+    lastCheck = t;
+  } else if (t - lastCheck > MINUTE) {
+    days = t > offset ?
+      (overflowTime / DAY * overflows) + (t - offset) / DAY
+      : (overflowTime / DAY * overflows) - (offset - t) / DAY;
+    lastCheck = t;
   }
 
-  unsigned long newDays = t > offset ?
-    (overflowTime / DAY * overflows) + (t - offset) / DAY
-    : (overflowTime / DAY * overflows) - (offset - t) / DAY;
-
-  if (newDays != days) {
-    setDays(newDays);
-  }
-
-  days = newDays;
-  lastCheck = t;
+  lastLoop = t;
+  setDays(days);
 }

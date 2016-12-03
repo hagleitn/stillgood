@@ -48,27 +48,37 @@ void pinMode(int p, int m) {
 int cnt = 0;
 int cnt2 = 0;
 int last = 0;
+int lastPair[2] = {-1,-1};
 byte b = 0x01 << 6;
 byte codes[];
+int segmentSelector[];
 
 /**
    These writes are used for the 7 segment display only. So every 7
    writes look up what was printed.
 */
 void digitalWrite(int p, int v) {
-  b = (b>>1) | (v<<6);
-  if (++cnt == 7) {
-    cnt = 0;
-    for (int i = 0; i < 10; i++) {
-      if (codes[i] == b) {
-        if (++cnt2 == 2) {
-          printf("%i%i\n",i,last);
-          cnt2 = 0;
+  v = v == HIGH ? LOW : HIGH;
+
+  if (segmentSelector[0] != p && segmentSelector[1] != p) {
+    b = (b>>1) | (v<<6);
+    if (++cnt == 7) {
+      cnt = 0;
+      for (int i = 0; i < 10; i++) {
+        if (codes[i] == b) {
+          if (++cnt2 == 2) {
+            if (lastPair[0] != i || lastPair[1] != last) {
+              printf("%i%i\n",i,last);
+              lastPair[0] = i;
+              lastPair[1] = last;
+            }
+            cnt2 = 0;
+          }
+          last = i;
         }
-        last = i;
       }
+      b = 0x00;
     }
-    b = 0x00;
   }
 }
 
@@ -88,7 +98,7 @@ int main(int argc, char **argv) {
 
     // simulate 200 days of runtime
     while(_millis < i*200ul*1000*60*60*24) {
-      _millis += 1;
+      _millis += 200;
       loop();
     }
 
