@@ -1,3 +1,5 @@
+//#define DEBUG 1
+
 unsigned long offset;
 unsigned long lastCheck;
 unsigned long lastLoop;
@@ -5,8 +7,14 @@ unsigned long days;
 unsigned long overflows;
 unsigned long overflowTime;
 
+
+#ifdef DEBUG
+#define DAY    (1000ul * 10ul)
+#define MINUTE (1000ul)
+#else
 #define DAY    (1000ul * 60ul * 60ul * 24ul)
 #define MINUTE (1000ul * 60ul)
+#endif
 
 byte codes[] = {
   0x3F, //00111111,
@@ -31,6 +39,12 @@ int segmentPins[SEGMENTS] = {3,4,5,6,7,8,9};
 int resetPin = 2; // only 2 and 3 can be used w/ interrupt on mini
 
 void reset() {
+
+#ifdef DEBUG
+  Serial.print("Reset at: ");
+  Serial.println(millis());
+#endif
+
   lastCheck = offset = millis();
   days = 0;
   overflows = 0;
@@ -38,6 +52,11 @@ void reset() {
 }
 
 void setup() {
+
+#ifdef DEBUG
+  Serial.begin(9600);
+#endif
+
   reset();
 
   for (int i = 0; i < DIGITS; i++) {
@@ -86,6 +105,13 @@ void loop() {
       (overflowTime / DAY * overflows) + (t - offset) / DAY
       : (overflowTime / DAY * overflows) - (offset - t) / DAY;
     lastCheck = t;
+
+#ifdef DEBUG
+    Serial.print("Time: ");
+    Serial.print(t);
+    Serial.print(",\t Days: ");
+    Serial.println(days);
+#endif
   }
 
   lastLoop = t;
