@@ -4,13 +4,13 @@ $fn = 0;
 
 wall = 3;
 dims = [20, 35, 12];
-cutout = [15, 14, 2*wall];
+cutout = [15.5, 14.5, 2*wall];
 corner_r = 3;
 offset = 3;
-lip = 2;
+lip = 1;
 dist = 10;
 
-button = [6,6,2*wall];
+button = [6.5,6.5,2*wall];
 offset_button = 3;
 
 module skin(debug=false, thickness=5, box=400) {
@@ -52,7 +52,7 @@ module bottom() {
             translate([-dims[0], -dims[1], -lip/2]) cube([4*dims[0], 4*dims[1], dims[2]]);
         }
         difference() {
-            enclosure(wall/2);
+            enclosure(wall/3);
             translate([-dims[0], -dims[1], lip/2]) cube([4*dims[0], 4*dims[1], dims[2]]);
         }
     }
@@ -67,7 +67,7 @@ module top() {
         difference() {
             difference() {
                 enclosure(wall);
-                enclosure(wall/2);
+                enclosure(2*wall/3);
             }
             translate([-dims[0], -dims[1], -dims[2]-lip/2]) cube([4*dims[0], 4*dims[1], dims[2]]);
         }
