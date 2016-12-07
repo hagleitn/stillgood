@@ -74,4 +74,4 @@ module top() {
 }
 
 translate([-dims[0]/2-offset, 0, 0]) bottom();
-translate([dims[0]/2+offset, 0, 0]) rotate([180,0,0]) top();
+translate([dims[0]/2+2*offset, 0, 0]) rotate([180,0,0]) top();
