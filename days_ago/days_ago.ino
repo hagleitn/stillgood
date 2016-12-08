@@ -1,26 +1,33 @@
 #ifndef SIM
-//#define DEBUG 1
+#define DEBUG 1
 #endif
 
 unsigned long offset;
 unsigned long lastCheck;
 unsigned long lastLoop;
-unsigned long days;
+unsigned long count;
 unsigned long overflows;
 unsigned long overflowTime;
 
 
-#ifdef DEBUG
-#define DAY    (1000ul * 1ul)
-#define MINUTE (500ul)
-#else
-#define DAY    (1000ul * 60ul * 60ul * 24ul)
-#define MINUTE (1000ul * 60ul)
-#endif
+#define DAY    (HOUR * 24ul)
+#define HOUR   (MINUTE * 60ul)
+#define MINUTE (SECOND * 60ul)
+#define SECOND (1000ul)
+
+#define DIGITS 2
+#define SEGMENTS 7
 
 // pinout display
 // 11 4 5 7 6
 // 9  3 x 8 10
+
+// digits
+//    1
+// 6     2
+//    7 
+// 5     3
+//    4
 
 byte codes[] = {
   0x3F, //00111111 // 0
@@ -35,8 +42,12 @@ byte codes[] = {
   0x6F, //01101111 // 9
 };
 
-#define DIGITS 2
-#define SEGMENTS 7
+byte modes[][DIGITS] = {
+  {0x00, 0x5E}, // 01011110 // d
+  {0x00, 0x74}, // 01110100 // h
+  {0x54, 0x54}, // 01010100 // m
+  {0x00, 0x6D}  // 01101101 // 5  
+};
 
 int segmentSelector[DIGITS] = {10,11};
 
@@ -44,15 +55,43 @@ int segmentPins[SEGMENTS] = {3,4,5,6,7,8,9};
 
 int resetPin = 2; // only 2 and 3 can be used w/ interrupt on mini
 
+unsigned long countInterval;
+unsigned long checkInterval;
+
+unsigned long countIntervals[] = {DAY, HOUR, MINUTE, SECOND};
+unsigned long checkIntervals[] = {MINUTE, MINUTE, SECOND, SECOND / 10};
+
+int state = -1;
+unsigned long lastStateChange;
+boolean mode = false;
+boolean toggle = false;
+
+void changeState() {
+  state = (state + 1) % 4;
+  checkInterval = checkIntervals[state];
+  countInterval = countIntervals[state];
+  lastStateChange = millis();
+}
+
 void reset() {
 
+  if (toggle && millis() - offset < SECOND / 2 && millis() - offset > 50) {
+    changeState();
+    toggle = false;
 #ifdef DEBUG
-  Serial.print("Reset at: ");
-  Serial.println(millis());
+    Serial.print("State change to: ");
+    Serial.println(state);
 #endif
-
+  } else { 
+    toggle = true;  
+#ifdef DEBUG
+    Serial.print("Reset at: ");
+    Serial.println(millis());
+#endif
+  }
+   
   lastCheck = offset = millis();
-  days = 0;
+  count = 0;
   overflows = 0;
   overflowTime = 0;
 }
@@ -63,6 +102,7 @@ void setup() {
   Serial.begin(9600);
 #endif
 
+  changeState();
   reset();
 
   for (int i = 0; i < DIGITS; i++) {
@@ -77,28 +117,36 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(resetPin), reset, RISING);
 }
 
-void setDays(unsigned long day) {
-  int digit;
-  byte index;
-
-  for (int i = 0; i < DIGITS; i++) {
-    digit = day % 10;
-    index = 0x01;
-
+void showBytes(int pos, byte val) {
+    byte index = 0x01;
+    
     for (int i = 0; i < SEGMENTS; i++) {
       digitalWrite(segmentPins[i], HIGH);
     }
 
-    for (int j = 0; j < DIGITS; j++) {
-      digitalWrite(segmentSelector[j], i == j ? HIGH : LOW);
+    for (int i = 0; i < DIGITS; i++) {
+      digitalWrite(segmentSelector[i], i == pos ? HIGH : LOW);
     }
 
-    for (int j = 0; j < SEGMENTS; j++) {
-      digitalWrite(segmentPins[j], codes[digit] & index ? LOW : HIGH);
+    for (int i = 0; i < SEGMENTS; i++) {
+      digitalWrite(segmentPins[i], val & index ? LOW : HIGH);
       index <<= 1;
     }
-    day /= 10;
     delay(2);
+}
+
+void setMode() {
+  showBytes(0, modes[state][1]);
+  showBytes(1, modes[state][0]);
+}
+
+void setCount(unsigned long count) {
+  int digit;
+
+  for (int i = 0; i < DIGITS; i++) {
+    digit = count % 10;
+    showBytes(i, codes[digit]);
+    count /= 10;
   }
 }
 
@@ -109,20 +157,29 @@ void loop() {
     overflows++;
     overflowTime = lastLoop;
     lastCheck = t;
-  } else if (t - lastCheck > MINUTE) {
-    days = t > offset ?
-      (overflowTime / DAY * overflows) + (t - offset) / DAY
-      : (overflowTime / DAY * overflows) - (offset - t) / DAY;
+  } else if (t - lastCheck > checkInterval) {
+    count = t > offset ?
+      (overflowTime / countInterval * overflows) + (t - offset) / countInterval
+      : (overflowTime / countInterval * overflows) - (offset - t) / countInterval;
     lastCheck = t;
 
 #ifdef DEBUG
     Serial.print("Time: ");
     Serial.print(t);
-    Serial.print(",\t Days: ");
-    Serial.println(days);
+    Serial.print(",\t Passed: ");
+    Serial.println(count);
 #endif
   }
 
   lastLoop = t;
-  setDays(days);
+  if (t > lastStateChange && t - lastStateChange < SECOND) {
+    setMode();
+    mode = true;
+  } else {
+    if (mode) {
+      reset();
+      mode = false;
+    }
+    setCount(count);
+  }
 }
