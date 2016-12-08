@@ -17,6 +17,8 @@
 #define INPUT 1
 #define INPUT_PULLUP 2
 
+#define DIGITS 2
+
 typedef char byte;
 
 unsigned long _millis = 0;
@@ -36,12 +38,23 @@ void attachInterrupt(int p, void (*a)(), int m) {
   _a = a;
 }
 
+class Serial_ {
+ public:
+  void begin(int i) {}
+  void println(long l) {}
+  void print(long l) {}
+  void println(char *c) {}
+  void print(char *c) {}
+};
+
+static Serial_ Serial;
+
 void pinMode(int p, int m) {
   char *mode;
 
-  if (m == 0) mode = "OUTPUT";
-  if (m == 1) mode = "INPUT";
-  if (m == 2) mode = "INPUT_PULLUP";
+  if (m == 0) mode = (char *)"OUTPUT";
+  if (m == 1) mode = (char *)"INPUT";
+  if (m == 2) mode = (char *)"INPUT_PULLUP";
   printf("Pin %i: %s\n", p, mode);
 }
 
@@ -50,8 +63,8 @@ int cnt2 = 0;
 int last = 0;
 int lastPair[2] = {-1,-1};
 byte b = 0x01 << 6;
-byte codes[];
-int segmentSelector[];
+extern byte codes[10];
+extern int segmentSelector[DIGITS];
 
 /**
    These writes are used for the 7 segment display only. So every 7
