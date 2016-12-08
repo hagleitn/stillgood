@@ -1,4 +1,6 @@
-//#define DEBUG 1
+#ifndef SIM
+#define DEBUG 1
+#endif
 
 unsigned long offset;
 unsigned long lastCheck;
@@ -9,24 +11,28 @@ unsigned long overflowTime;
 
 
 #ifdef DEBUG
-#define DAY    (1000ul * 10ul)
-#define MINUTE (1000ul)
+#define DAY    (1000ul * 1ul)
+#define MINUTE (500ul)
 #else
 #define DAY    (1000ul * 60ul * 60ul * 24ul)
 #define MINUTE (1000ul * 60ul)
 #endif
 
+// pinout display
+// 11 4 5 7 6
+// 9  3 x 8 10
+
 byte codes[] = {
-  0x3F, //00111111,
-  0x06, //00000110,
-  0x5B, //01011011,
-  0x4F, //01001111,
-  0x66, //01100110,
-  0x6D, //01101101,
-  0x7D, //01111101,
-  0x07, //00000111,
-  0x7F, //01111111,
-  0x6F, //01101111
+  0x3F, //00111111 // 0
+  0x06, //00000110 // 1
+  0x5B, //01011011 // 2
+  0x4F, //01001111 // 3
+  0x66, //01100110 // 4
+  0x6D, //01101101 // 5
+  0x7D, //01111101 // 6
+  0x07, //00000111 // 7
+  0x7F, //01111111 // 8
+  0x6F, //01101111 // 9
 };
 
 #define DIGITS 2
@@ -79,6 +85,10 @@ void setDays(unsigned long day) {
     digit = day % 10;
     index = 0x01;
 
+    for (int i = 0; i < SEGMENTS; i++) {
+      digitalWrite(segmentPins[i], HIGH);
+    }
+
     for (int j = 0; j < DIGITS; j++) {
       digitalWrite(segmentSelector[j], i == j ? HIGH : LOW);
     }
@@ -87,9 +97,8 @@ void setDays(unsigned long day) {
       digitalWrite(segmentPins[j], codes[digit] & index ? LOW : HIGH);
       index <<= 1;
     }
-
-    delay(2);
     day /= 10;
+    delay(2);
   }
 }
 

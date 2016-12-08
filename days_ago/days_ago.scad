@@ -2,12 +2,12 @@ $fa = 1;
 $fs = 0.5;
 $fn = 0;
 
-wall = 4;
+wall = 3;
 dims = [20, 35, 12];
 cutout = [15.5, 14.5, 2*wall];
 corner_r = 3;
 offset = 3;
-lip = 2;
+lip = 1;
 dist = 10;
 
 button = [6.5,6.5,2*wall];
@@ -52,7 +52,7 @@ module bottom() {
             translate([-dims[0], -dims[1], -lip/2]) cube([4*dims[0], 4*dims[1], dims[2]]);
         }
         difference() {
-            enclosure((wall-1)/2);
+            enclosure((wall-0)/2);
             translate([-dims[0], -dims[1], lip/2]) cube([4*dims[0], 4*dims[1], dims[2]]);
         }
     }
@@ -67,7 +67,7 @@ module top() {
         difference() {
             difference() {
                 enclosure(wall);
-                enclosure(wall-(wall-1)/2);
+                enclosure(wall-(wall-0)/2);
             }
             translate([-dims[0], -dims[1], -dims[2]-lip/2]) cube([4*dims[0], 4*dims[1], dims[2]]);
         }
