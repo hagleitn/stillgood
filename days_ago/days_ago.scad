@@ -2,15 +2,15 @@ $fa = 1;
 $fs = 0.5;
 $fn = 0;
 
-wall = 2;
-dims = [20, 35, 12];
+wall = 1.5;
+dims = [20, 35, 15];
 cutout = [15.5, 14.5, 2*wall];
 corner_r = 3;
 offset = 3;
 lip = 1;
 dist = 10;
 
-latch = [wall-1, 7, dims[2]-wall-1];
+latch = [wall, 7, dims[2]-wall];
 
 button = [6.5,6.5,2*wall];
 offset_button = 3;
@@ -47,22 +47,23 @@ module enclosure(thickness=10) {
     }
 }
 
-module latch__() {
-    latch_();
-    translate([dims[0],0,0]) mirror([1,0,0]) latch_();
+module latch__(addition=0) {
+    latch_(addition);
+    translate([dims[0],0,0]) mirror([1,0,0]) latch_(addition);
 }
 
-module latch_(solid=false) {
-    translate([-corner_r+1, dims[1]/2-latch[1]/2, -dims[2]/2+wall]) cube(latch);
-    translate([-corner_r, dims[1]/2-latch[1]/2, -dims[2]/2+wall]) 
-        cube([latch[0], latch[1], wall+1]);
+module latch_(addition=0) {
+    translate([-corner_r+1, dims[1]/2-latch[1]/2-addition/2, -dims[2]/2+wall]) 
+        cube([latch[0],latch[1]+addition,latch[2]]);
+    translate([-corner_r-1, dims[1]/2-latch[1]/2-addition/2, -dims[2]/2+wall]) 
+        cube([latch[0]+2+addition, latch[1]+addition, wall+1+addition]);
 }
 
 module bottom() {
     difference() {
         enclosure(thickness=wall);
         translate([-dims[0], -dims[1], 0]) cube([4*dims[0], 4*dims[1], dims[2]]);
-        latch__();
+        latch__(0.75);
     }
 }
 

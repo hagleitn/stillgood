@@ -1,11 +1,12 @@
 #ifndef SIM
-#define DEBUG 1
+//#define DEBUG 1
 #endif
 
 unsigned long offset;
 unsigned long lastCheck;
 unsigned long lastLoop;
 unsigned long count;
+unsigned long manual;
 unsigned long overflows;
 unsigned long overflowTime;
 
@@ -25,7 +26,7 @@ unsigned long overflowTime;
 // digits
 //    1
 // 6     2
-//    7 
+//    7
 // 5     3
 //    4
 
@@ -46,7 +47,7 @@ byte modes[][DIGITS] = {
   {0x00, 0x5E}, // 01011110 // d
   {0x00, 0x74}, // 01110100 // h
   {0x54, 0x54}, // 01010100 // m
-  {0x00, 0x6D}  // 01101101 // 5  
+  {0x00, 0x6D}  // 01101101 // 5
 };
 
 int segmentSelector[DIGITS] = {10,11};
@@ -63,37 +64,54 @@ unsigned long checkIntervals[] = {MINUTE, MINUTE, SECOND, SECOND / 10};
 
 int state = -1;
 unsigned long lastStateChange;
-boolean mode = false;
-boolean toggle = false;
+int mode = false;
 
-void changeState() {
+int blink = false;
+unsigned long lastManual;
+
+int toggle = false;
+
+void changeState(unsigned long t) {
   state = (state + 1) % 4;
   checkInterval = checkIntervals[state];
   countInterval = countIntervals[state];
-  lastStateChange = millis();
+  lastStateChange = t;
+  mode = true;
 }
 
 void reset() {
 
-  if (toggle && millis() - offset < SECOND / 2 && millis() - offset > 50) {
-    changeState();
-    toggle = false;
+  unsigned long t = lastLoop;
+
+  if (blink) {
+    if (t >= lastManual && t - lastManual > 50) {
+      count++;
+      manual++;
+      lastStateChange = t - SECOND + 1;
+      lastManual = t;
+    }
+  } else {
+    if (toggle && t >= offset && t - offset < SECOND / 2 && t - offset > 50) {
+      changeState(t);
+      toggle = false;
 #ifdef DEBUG
-    Serial.print("State change to: ");
-    Serial.println(state);
+      Serial.print("State change to: ");
+      Serial.println(state);
 #endif
-  } else { 
-    toggle = true;  
+    } else {
+      toggle = true;
 #ifdef DEBUG
-    Serial.print("Reset at: ");
-    Serial.println(millis());
+      Serial.print("Reset at: ");
+      Serial.println(t);
 #endif
+    }
+
+    lastCheck = offset = lastManual = t;
+    count = 0;
+    manual = 0;
+    overflows = 0;
+    overflowTime = 0;
   }
-   
-  lastCheck = offset = millis();
-  count = 0;
-  overflows = 0;
-  overflowTime = 0;
 }
 
 void setup() {
@@ -102,8 +120,9 @@ void setup() {
   Serial.begin(9600);
 #endif
 
-  changeState();
+  changeState(millis());
   reset();
+  toggle = false;
 
   for (int i = 0; i < DIGITS; i++) {
     pinMode(segmentSelector[i], OUTPUT);
@@ -118,29 +137,29 @@ void setup() {
 }
 
 void showBytes(int pos, byte val) {
-    byte index = 0x01;
-    
-    for (int i = 0; i < SEGMENTS; i++) {
-      digitalWrite(segmentPins[i], HIGH);
-    }
+  byte index = 0x01;
 
-    for (int i = 0; i < DIGITS; i++) {
-      digitalWrite(segmentSelector[i], i == pos ? HIGH : LOW);
-    }
+  for (int i = 0; i < SEGMENTS; i++) {
+    digitalWrite(segmentPins[i], HIGH);
+  }
 
-    for (int i = 0; i < SEGMENTS; i++) {
-      digitalWrite(segmentPins[i], val & index ? LOW : HIGH);
-      index <<= 1;
-    }
-    delay(2);
+  for (int i = 0; i < DIGITS; i++) {
+    digitalWrite(segmentSelector[i], i == pos ? HIGH : LOW);
+  }
+
+  for (int i = 0; i < SEGMENTS; i++) {
+    digitalWrite(segmentPins[i], val & index ? LOW : HIGH);
+    index <<= 1;
+  }
+  delay(2);
 }
 
-void setMode() {
+void showMode() {
   showBytes(0, modes[state][1]);
   showBytes(1, modes[state][0]);
 }
 
-void setCount(unsigned long count) {
+void showCount(unsigned long count) {
   int digit;
 
   for (int i = 0; i < DIGITS; i++) {
@@ -158,9 +177,10 @@ void loop() {
     overflowTime = lastLoop;
     lastCheck = t;
   } else if (t - lastCheck > checkInterval) {
-    count = t > offset ?
+    count = t >= offset ?
       (overflowTime / countInterval * overflows) + (t - offset) / countInterval
       : (overflowTime / countInterval * overflows) - (offset - t) / countInterval;
+    count += manual;
     lastCheck = t;
 
 #ifdef DEBUG
@@ -171,15 +191,29 @@ void loop() {
 #endif
   }
 
-  lastLoop = t;
-  if (t > lastStateChange && t - lastStateChange < SECOND) {
-    setMode();
-    mode = true;
+  if (mode && t >= lastStateChange && t - lastStateChange < SECOND) {
+    showMode();
   } else {
     if (mode) {
       reset();
+      toggle = false;
       mode = false;
+      blink = true;
+      lastManual = t;
     }
-    setCount(count);
+
+    if (blink && t >= lastStateChange && t - lastStateChange < 3 * SECOND) {
+      if (((t - lastStateChange) / 300) % 2 == 0) {
+        showCount(count);
+      } else {
+        showBytes(0, 0x00);
+        showBytes(1, 0x00);
+      }
+    } else {
+      blink = false;
+      showCount(count);
+    }
   }
+
+  lastLoop = t;
 }
