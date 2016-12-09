@@ -1,10 +1,10 @@
-default: days_ago days_ago.stl
+default: still_good still_good.stl
 
-days_ago.stl: days_ago.scad
-	OpenSCAD -o days_ago.stl days_ago.scad
+still_good.stl: still_good.scad
+	OpenSCAD -o still_good.stl still_good.scad
 
-days_ago: days_ago.ino simulator.c
-	g++ simulator.c -DSIM=1 -o days_ago
+still_good: still_good.ino simulator.c
+	g++ simulator.c -DSIM=1 -o still_good
 
 clean:
-	-rm -f days_ago days_ago.stl
+	-rm -f still_good still_good.stl
