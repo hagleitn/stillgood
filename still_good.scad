@@ -3,10 +3,10 @@ $fs = 0.5;
 $fn = 0;
 
 wall = 1.5;
-dims = [20, 35, 15];
+dims = [21, 36, 15];
 cutout = [15.5, 14.5, 2*wall];
 corner_r = 3;
-offset = 3;
+offset = 1;
 lip = 1;
 dist = 10;
 
