@@ -71,6 +71,9 @@ unsigned long lastManual;
 
 int toggle = false;
 
+unsigned long lastPowersaveChange;
+int powersave = false;
+
 void changeState(unsigned long t) {
   state = (state + 1) % 4;
   checkInterval = checkIntervals[state];
@@ -82,6 +85,14 @@ void changeState(unsigned long t) {
 void reset() {
 
   unsigned long t = lastLoop;
+
+  if (powersave) {
+    powersave = false;
+    lastPowersaveChange = t;
+  } else if (t > lastPowersaveChange && t - lastPowersaveChange < 3 * SECOND) {
+    return;
+  }
+
 
   if (blink) {
     if (t >= lastManual && t - lastManual > 50) {
@@ -123,6 +134,8 @@ void setup() {
   changeState(millis());
   reset();
   toggle = false;
+
+  lastPowersaveChange = millis();
 
   for (int i = 0; i < DIGITS; i++) {
     pinMode(segmentSelector[i], OUTPUT);
@@ -183,6 +196,11 @@ void loop() {
     count += manual;
     lastCheck = t;
 
+    if (!powersave && t > lastPowersaveChange && t - lastPowersaveChange > 2 * MINUTE) {
+      powersave = true;
+      lastPowersaveChange = t;
+    }
+
 #ifdef DEBUG
     Serial.print("Time: ");
     Serial.print(t);
@@ -191,27 +209,31 @@ void loop() {
 #endif
   }
 
-  if (mode && t >= lastStateChange && t - lastStateChange < SECOND) {
-    showMode();
+  if (powersave) {
+    delay(SECOND / 10);
   } else {
-    if (mode) {
-      reset();
-      toggle = false;
-      mode = false;
-      blink = true;
-      lastManual = t;
-    }
-
-    if (blink && t >= lastStateChange && t - lastStateChange < 3 * SECOND) {
-      if (((t - lastStateChange) / 300) % 2 == 0) {
-        showCount(count);
-      } else {
-        showBytes(0, 0x00);
-        showBytes(1, 0x00);
-      }
+    if (mode && t >= lastStateChange && t - lastStateChange < SECOND) {
+      showMode();
     } else {
-      blink = false;
-      showCount(count);
+      if (mode) {
+        reset();
+        toggle = false;
+        mode = false;
+        blink = true;
+        lastManual = t;
+      }
+
+      if (blink && t >= lastStateChange && t - lastStateChange < 3 * SECOND) {
+        if (((t - lastStateChange) / 300) % 2 == 0) {
+          showCount(count);
+        } else {
+          showBytes(0, 0x00);
+          showBytes(1, 0x00);
+        }
+      } else {
+        blink = false;
+        showCount(count);
+      }
     }
   }
 
