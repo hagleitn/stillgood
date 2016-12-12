@@ -7,4 +7,4 @@ still_good: still_good.ino simulator.c display.c click_handler.c
 	g++ simulator.c display.c click_handler.c -DSIM=1 -g -o still_good
 
 clean:
-	-rm -f still_good still_good.stl
+	-rm -rf still_good still_good.stl still_good.dSYM

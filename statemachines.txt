@@ -1,0 +1,45 @@
+start:
+-> falling -> half_click
+-> rising -> start
+
+half_click
+-> falling -> half_click
+-> rising [> min, < long] -> click
+-> rising [> long] -> long_click
+
+click:
+-> rising -> click
+-> time (> double click int), emit -> start
+-> falling [> min, < double click int] -> click_and_a_half
+
+click_and_half:
+-> rising [> min, < long] -> double_click
+-> rising [> min, > long], emit click -> long_click
+-> falling -> click_and_a_half
+-> rising [< min] -> click_and_a_half
+
+double_click:
+-> emit -> start
+
+long_click:
+-> emit -> start
+
+-------
+
+base:
+-> click, reset -> base
+-> double click, next interval -> show state
+-> long click -> manual entry
+-> time [ > powersave] -> powersave
+
+powersave:
+-> click, double click, long click -> base
+
+show state:
+-> time [> show state] -> base
+-> click, double click [next state], long click -> show state
+
+manual entry:
+-> click, incr -> manual_entry
+-> double click, incr *2 -> manual entry
+-> long clieck, incr -> manual entry
