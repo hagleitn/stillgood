@@ -2,57 +2,22 @@
 //#define DEBUG 1
 #endif
 
+#include "click_handler.h"
+#include "display.h"
+
 unsigned long offset;
 unsigned long lastCheck;
 unsigned long lastLoop;
-unsigned long count;
-unsigned long manual;
 unsigned long overflows;
 unsigned long overflowTime;
 
+volatile unsigned long count;
+volatile unsigned long manual;
 
 #define DAY    (HOUR * 24ul)
 #define HOUR   (MINUTE * 60ul)
 #define MINUTE (SECOND * 60ul)
 #define SECOND (1000ul)
-
-#define DIGITS 2
-#define SEGMENTS 7
-
-// pinout display
-// 11 4 5 7 6
-// 9  3 x 8 10
-
-// digits
-//    1
-// 6     2
-//    7
-// 5     3
-//    4
-
-byte codes[] = {
-  0x3F, //00111111 // 0
-  0x06, //00000110 // 1
-  0x5B, //01011011 // 2
-  0x4F, //01001111 // 3
-  0x66, //01100110 // 4
-  0x6D, //01101101 // 5
-  0x7D, //01111101 // 6
-  0x07, //00000111 // 7
-  0x7F, //01111111 // 8
-  0x6F, //01101111 // 9
-};
-
-byte modes[][DIGITS] = {
-  {0x00, 0x5E}, // 01011110 // d
-  {0x00, 0x74}, // 01110100 // h
-  {0x54, 0x54}, // 01010100 // m
-  {0x00, 0x6D}  // 01101101 // 5
-};
-
-int segmentSelector[DIGITS] = {10,11};
-
-int segmentPins[SEGMENTS] = {3,4,5,6,7,8,9};
 
 int resetPin = 2; // only 2 and 3 can be used w/ interrupt on mini
 
@@ -62,66 +27,104 @@ unsigned long checkInterval;
 unsigned long countIntervals[] = {DAY, HOUR, MINUTE, SECOND};
 unsigned long checkIntervals[] = {MINUTE, MINUTE, SECOND, SECOND / 10};
 
-int state = -1;
-unsigned long lastStateChange;
-int mode = false;
 
-int blink = false;
-unsigned long lastManual;
+enum _state_t {
+  BASE,
+  POWERSAVE,
+  SHOW_INTERVAL,
+  MANUAL_ENTRY
+};
 
-int toggle = false;
+typedef _state_t state_t;
 
-unsigned long lastPowersaveChange;
-int powersave = false;
+volatile state_t state;
+volatile unsigned long lastStateChange;
 
-void changeState(unsigned long t) {
-  state = (state + 1) % 4;
-  checkInterval = checkIntervals[state];
-  countInterval = countIntervals[state];
+volatile int interval;
+
+void setState(state_t s, unsigned long t) {
+  state = s;
   lastStateChange = t;
-  mode = true;
 }
 
 void reset() {
 
   unsigned long t = lastLoop;
 
-  if (powersave) {
-    powersave = false;
-    lastPowersaveChange = t;
-  } else if (t > lastPowersaveChange && t - lastPowersaveChange < 3 * SECOND) {
-    return;
+  lastCheck = offset = t;
+  count = 0;
+  manual = 0;
+  overflows = 0;
+  overflowTime = 0;
+}
+
+void setInterval(int i) {
+  interval = i;
+  checkInterval = checkIntervals[i];
+  countInterval = countIntervals[i];
+}
+
+void changeInterval() {
+  reset();
+  setInterval((interval + 1) % 4);
+}
+
+void click() {
+  switch(state) {
+  case BASE:
+    reset();
+    break;
+  case POWERSAVE:
+    setState(BASE, lastLoop);
+    break;
+  case SHOW_INTERVAL:
+    // ignore
+    break;
+  case MANUAL_ENTRY:
+    count++;
+    manual++;
+    setState(MANUAL_ENTRY, lastLoop);
+    break;
   }
+}
 
+void doubleClick() {
+  switch(state) {
+  case BASE:
+    changeInterval();
+    setState(SHOW_INTERVAL, lastLoop);
+    break;
+  case POWERSAVE:
+    setState(BASE, lastLoop);
+    break;
+  case SHOW_INTERVAL:
+    changeInterval();
+    setState(SHOW_INTERVAL, lastLoop);
+    break;
+  case MANUAL_ENTRY:
+    count += 2;
+    manual += 2;
+    setState(MANUAL_ENTRY, lastLoop);
+    break;
+  }
+}
 
-  if (blink) {
-    if (t >= lastManual && t - lastManual > 50) {
-      count++;
-      manual++;
-      lastStateChange = t - SECOND + 1;
-      lastManual = t;
-    }
-  } else {
-    if (toggle && t >= offset && t - offset < SECOND / 2 && t - offset > 50) {
-      changeState(t);
-      toggle = false;
-#ifdef DEBUG
-      Serial.print("State change to: ");
-      Serial.println(state);
-#endif
-    } else {
-      toggle = true;
-#ifdef DEBUG
-      Serial.print("Reset at: ");
-      Serial.println(t);
-#endif
-    }
-
-    lastCheck = offset = lastManual = t;
-    count = 0;
-    manual = 0;
-    overflows = 0;
-    overflowTime = 0;
+void longClick() {
+  switch(state) {
+  case BASE:
+    setState(MANUAL_ENTRY, lastLoop);
+    break;
+  case POWERSAVE:
+    setState(BASE, lastLoop);
+    break;
+  case SHOW_INTERVAL:
+    // ignore
+    break;
+  case MANUAL_ENTRY:
+    count++;
+    manual++;
+    setState(MANUAL_ENTRY, lastLoop);
+    break;
   }
 }
 
@@ -131,75 +134,36 @@ void setup() {
   Serial.begin(9600);
 #endif
 
-  changeState(millis());
+  unsigned long t = millis();
+
+  lastLoop = t;
+  setInterval(0);
   reset();
-  toggle = false;
 
-  lastPowersaveChange = millis();
+  setState(BASE, t);
 
-  for (int i = 0; i < DIGITS; i++) {
-    pinMode(segmentSelector[i], OUTPUT);
-  }
+  setupDisplay();
 
-  for (int i = 0; i < SEGMENTS; i++) {
-    pinMode(segmentPins[i], OUTPUT);
-  }
-
-  pinMode(resetPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(resetPin), reset, RISING);
-}
-
-void showBytes(int pos, byte val) {
-  byte index = 0x01;
-
-  for (int i = 0; i < SEGMENTS; i++) {
-    digitalWrite(segmentPins[i], HIGH);
-  }
-
-  for (int i = 0; i < DIGITS; i++) {
-    digitalWrite(segmentSelector[i], i == pos ? HIGH : LOW);
-  }
-
-  for (int i = 0; i < SEGMENTS; i++) {
-    digitalWrite(segmentPins[i], val & index ? LOW : HIGH);
-    index <<= 1;
-  }
-  delay(2);
-}
-
-void showMode() {
-  showBytes(0, modes[state][1]);
-  showBytes(1, modes[state][0]);
-}
-
-void showCount(unsigned long count) {
-  int digit;
-
-  for (int i = 0; i < DIGITS; i++) {
-    digit = count % 10;
-    showBytes(i, codes[digit]);
-    count /= 10;
-  }
+  setupClicks(resetPin, &click, &doubleClick, &longClick);
 }
 
 void loop() {
   unsigned long t = millis();
 
+  // handle user input
+  updateClicks(t);
+
+  // update time passed, etc
   if (t < lastCheck) {
     overflows++;
     overflowTime = lastLoop;
     lastCheck = t;
-  } else if (t - lastCheck > checkInterval) {
+  } else if (t - lastCheck >= checkInterval) {
     count = t >= offset ?
       (overflowTime / countInterval * overflows) + (t - offset) / countInterval
       : (overflowTime / countInterval * overflows) - (offset - t) / countInterval;
     count += manual;
     lastCheck = t;
-
-    if (!powersave && t > lastPowersaveChange && t - lastPowersaveChange > 2 * MINUTE) {
-      powersave = true;
-      lastPowersaveChange = t;
-    }
 
 #ifdef DEBUG
     Serial.print("Time: ");
@@ -209,32 +173,51 @@ void loop() {
 #endif
   }
 
-  if (powersave) {
-    delay(SECOND / 10);
-  } else {
-    if (mode && t >= lastStateChange && t - lastStateChange < SECOND) {
-      showMode();
-    } else {
-      if (mode) {
-        reset();
-        toggle = false;
-        mode = false;
-        blink = true;
-        lastManual = t;
-      }
-
-      if (blink && t >= lastStateChange && t - lastStateChange < 3 * SECOND) {
-        if (((t - lastStateChange) / 300) % 2 == 0) {
-          showCount(count);
-        } else {
-          showBytes(0, 0x00);
-          showBytes(1, 0x00);
-        }
-      } else {
-        blink = false;
-        showCount(count);
-      }
+  // time transitions
+  switch(state) {
+  case BASE:
+#ifndef SIM
+    if (t >= lastStateChange && t - lastStateChange > 2 * MINUTE) {
+      setState(POWERSAVE, t);
+      clearAll();
     }
+#endif
+    break;
+  case MANUAL_ENTRY:
+    if (t >= lastStateChange && t - lastStateChange > 5 * SECOND) {
+      setState(BASE, t);
+    }
+    break;
+  case SHOW_INTERVAL:
+    if (t >= lastStateChange && t - lastStateChange > 2 * SECOND) {
+      setState(BASE, t);
+    }
+    break;
+  default:
+    // ignore
+    break;
+  }
+
+
+  // update display
+  switch(state) {
+  case BASE:
+    showCount(count);
+    break;
+  case POWERSAVE:
+    delay(SECOND /10);
+    break;
+  case SHOW_INTERVAL:
+    showInterval(interval);
+    break;
+  case MANUAL_ENTRY:
+    if (((t - lastStateChange) / 300) % 2 == 0) {
+      showCount(count);
+    } else {
+      showBytes(0, 0x00);
+      showBytes(1, 0x00);
+    }
+    break;
   }
 
   lastLoop = t;

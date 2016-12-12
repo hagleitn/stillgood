@@ -1,25 +1,13 @@
 #ifdef SIM
 
+#include "simulator.h"
+
 /**
    This file is just a simple wrapper around the actual arduino file
    to run w/o a board. It mocks a bunch of arduino functions to be
    able to compile the sketch and print out the results of running the
    program.
 */
-
-#include <stdio.h>
-
-#define RISING 0
-#define HIGH 1
-#define LOW 0
-
-#define OUTPUT 0
-#define INPUT 1
-#define INPUT_PULLUP 2
-
-#define DIGITS 2
-
-typedef char byte;
 
 unsigned long _millis = 0;
 
@@ -38,17 +26,6 @@ void attachInterrupt(int p, void (*a)(), int m) {
   _a = a;
 }
 
-class Serial_ {
- public:
-  void begin(int i) {}
-  void println(long l) {}
-  void print(long l) {}
-  void println(char *c) {}
-  void print(char *c) {}
-};
-
-static Serial_ Serial;
-
 void pinMode(int p, int m) {
   char *mode;
 
@@ -65,6 +42,12 @@ int lastPair[2] = {-1,-1};
 byte b = 0x01 << 6;
 extern byte codes[10];
 extern int segmentSelector[DIGITS];
+
+int pinValue = HIGH;
+int digitalRead(int p) {
+  pinValue = pinValue == HIGH ? LOW : HIGH;
+  return pinValue;
+}
 
 /**
    These writes are used for the 7 segment display only. So every 7
