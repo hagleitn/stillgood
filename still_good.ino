@@ -5,6 +5,10 @@
 #include "click_handler.h"
 #include "display.h"
 
+#ifndef SIM
+#include "LowPower.h"
+#endif
+
 unsigned long offset;
 unsigned long lastCheck;
 unsigned long lastLoop;
@@ -232,7 +236,12 @@ void loop() {
     showCount(count);
     break;
   case POWERSAVE:
-    delay(SECOND /10);
+#ifndef SIM
+    LowPower.idle(SLEEP_8S, ADC_OFF, TIMER2_OFF, TIMER1_OFF, TIMER0_ON,
+                  SPI_OFF, USART0_OFF, TWI_OFF);
+#else
+    delay(8 * SECOND);
+#endif
     break;
   case SHOW_INTERVAL:
     showInterval(interval);
