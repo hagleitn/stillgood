@@ -5,7 +5,7 @@
 #define SEGMENTS 7
 
 #ifdef SIM
-#include "simulator.h"
+#include "Simulator.h"
 #else
 #include <Arduino.h>
 #endif

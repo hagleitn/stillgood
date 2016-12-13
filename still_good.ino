@@ -2,8 +2,8 @@
 //#define DEBUG 1
 #endif
 
-#include "click_handler.h"
-#include "display.h"
+#include "ClickHandler.h"
+#include "Display.h"
 
 #ifndef SIM
 #include "LowPower.h"

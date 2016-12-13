@@ -2,7 +2,7 @@
 #define CLICK_HANDLER_H
 
 #ifdef SIM
-#include "simulator.h"
+#include "Simulator.h"
 #else
 #include <Arduino.h>
 #endif

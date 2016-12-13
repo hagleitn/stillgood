@@ -1,4 +1,4 @@
-#include "display.h"
+#include "Display.h"
 
 // pinout display
 // 11 4 5 7 6
