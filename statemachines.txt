@@ -4,7 +4,7 @@ start:
 
 half_click
 -> falling -> half_click
--> rising [> min, < long] -> click
+-> rising [< long] -> click
 -> rising [> long] -> long_click
 
 click:
@@ -13,8 +13,8 @@ click:
 -> falling [> min, < double click int] -> click_and_a_half
 
 click_and_half:
--> rising [> min, < long] -> double_click
--> rising [> min, > long], emit click -> long_click
+-> rising [< long] -> double_click
+-> rising [> long], emit click -> long_click
 -> falling -> click_and_a_half
 -> rising [< min] -> click_and_a_half
 

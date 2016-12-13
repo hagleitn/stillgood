@@ -43,6 +43,21 @@ volatile unsigned long lastStateChange;
 volatile int interval;
 
 void setState(state_t s, unsigned long t) {
+#ifdef DEBUG
+  switch(s) {
+  case BASE:
+    Serial.println("BASE");
+    break;
+  case POWERSAVE:
+    Serial.println("POWERSAVE");
+    break;
+  case MANUAL_ENTRY:
+    Serial.println("MANUAL_ENTRY");
+    break;
+  case SHOW_INTERVAL:
+    Serial.println("SHOW_INTERVAL");
+  }
+#endif
   state = s;
   lastStateChange = t;
 }
@@ -70,6 +85,10 @@ void changeInterval() {
 }
 
 void click() {
+#ifdef DEBUG
+  Serial.println("click");
+#endif
+
   switch(state) {
   case BASE:
     reset();
@@ -89,6 +108,10 @@ void click() {
 }
 
 void doubleClick() {
+#ifdef DEBUG
+  Serial.println("double click");
+#endif
+
   switch(state) {
   case BASE:
     changeInterval();
@@ -110,6 +133,10 @@ void doubleClick() {
 }
 
 void longClick() {
+#ifdef DEBUG
+  Serial.println("long click");
+#endif
+
   switch(state) {
   case BASE:
     setState(MANUAL_ENTRY, lastLoop);

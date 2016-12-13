@@ -1,11 +1,16 @@
 #include "click_handler.h"
 
+#ifndef SIM
+//#define DEBUG
+//#include "hardwareSerial.h"
+#endif
+
 void (*click)();
 void (*longClick)();
 void (*doubleClick)();
 
 #define LONG_CLICK_INTERVAL 1000
-#define DOUBLE_CLICK_INTERVAL 500
+#define DOUBLE_CLICK_INTERVAL 250
 #define MIN_INTERVAL 50
 
 enum _click_state_t {
@@ -29,6 +34,22 @@ volatile int doubleClicks;
 unsigned long now;
 
 void setState(click_state_t s, unsigned long t) {
+#ifdef DEBUG
+  switch(s) {
+  case BASE:
+    Serial.println("BASE");
+    break;
+  case HALF_CLICK:
+    Serial.println("HALF_CLICK");
+    break;
+  case CLICK:
+    Serial.println("CLICK");
+    break;
+  case CLICK_AND_HALF:
+    Serial.println("CLICK_AND_HALF");
+  }
+#endif
+
   click_state = s;
   lastClickStateChange = t;
 }
@@ -42,42 +63,44 @@ int pastInterval(unsigned long start, unsigned long length, unsigned long t) {
 }
 
 void rising() {
+#ifdef DEBUG
+  Serial.println("rising");
+#endif
 
   switch(click_state) {
   case BASE:
     // ignore
     break;
   case HALF_CLICK:
-    if (!inInterval(lastClickStateChange, MIN_INTERVAL, now)) {
-      if (inInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
-        setState(CLICK, now);
-      }
-      if (pastInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
-        longClicks++;
-        setState(BASE, now);
-      }
+    if (inInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
+      setState(CLICK, now);
+    }
+    if (pastInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
+      longClicks++;
+      setState(BASE, now);
     }
     break;
   case CLICK:
     // ignore
     break;
   case CLICK_AND_HALF:
-    if (!inInterval(lastClickStateChange, MIN_INTERVAL, now)) {
-      if (inInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
-        doubleClicks++;
-        setState(BASE, now);
-      }
-      if (pastInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
-        clicks++;
-        longClicks++;
-        setState(BASE, now);
-      }
+    if (inInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
+      doubleClicks++;
+      setState(BASE, now);
+    }
+    if (pastInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
+      clicks++;
+      longClicks++;
+      setState(BASE, now);
     }
     break;
   }
 }
 
 void falling() {
+#ifdef DEBUG
+  Serial.println("falling");
+#endif
 
   switch(click_state) {
   case BASE:
@@ -100,7 +123,7 @@ void falling() {
 void change() {
   int val = digitalRead(pin);
 
-  if (click_state == CLICK_AND_HALF
+  if (click_state == CLICK
       && pastInterval(lastClickStateChange, DOUBLE_CLICK_INTERVAL, now)) {
     setState(BASE, now);
     clicks++;
@@ -129,7 +152,7 @@ void updateClicks(unsigned long t) {
 
   now = t;
 
-  if (click_state == CLICK_AND_HALF
+  if (click_state == CLICK
       && pastInterval(lastClickStateChange, DOUBLE_CLICK_INTERVAL, now)) {
     setState(BASE, now);
     clicks++;
