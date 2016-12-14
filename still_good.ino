@@ -4,16 +4,13 @@
 
 #include "ClickHandler.h"
 #include "Display.h"
+#include "Timeline.h"
 
 #ifndef SIM
 #include "LowPower.h"
 #endif
 
-unsigned long offset;
-unsigned long lastCheck;
-unsigned long lastLoop;
-unsigned long overflows;
-unsigned long overflowTime;
+ts lastCheck;
 
 volatile unsigned long count;
 volatile unsigned long manual;
@@ -42,11 +39,11 @@ enum _state_t {
 typedef _state_t state_t;
 
 volatile state_t state;
-volatile unsigned long lastStateChange;
+volatile ts lastStateChange;
 
 volatile int interval;
 
-void setState(state_t s, unsigned long t) {
+void setState(state_t s) {
 #ifdef DEBUG
   switch(s) {
   case BASE:
@@ -63,18 +60,16 @@ void setState(state_t s, unsigned long t) {
   }
 #endif
   state = s;
-  lastStateChange = t;
+  assignTime(&lastStateChange,now());
 }
 
 void reset() {
 
-  unsigned long t = lastLoop;
+  resetTime();
 
-  lastCheck = offset = t;
+  assignTime(&lastCheck,now());
   count = 0;
   manual = 0;
-  overflows = 0;
-  overflowTime = 0;
 }
 
 void setInterval(int i) {
@@ -98,7 +93,7 @@ void click() {
     reset();
     break;
   case POWERSAVE:
-    setState(BASE, lastLoop);
+    setState(BASE);
     break;
   case SHOW_INTERVAL:
     // ignore
@@ -106,7 +101,7 @@ void click() {
   case MANUAL_ENTRY:
     count++;
     manual++;
-    setState(MANUAL_ENTRY, lastLoop);
+    setState(MANUAL_ENTRY);
     break;
   }
 }
@@ -119,19 +114,19 @@ void doubleClick() {
   switch(state) {
   case BASE:
     changeInterval();
-    setState(SHOW_INTERVAL, lastLoop);
+    setState(SHOW_INTERVAL);
     break;
   case POWERSAVE:
-    setState(BASE, lastLoop);
+    setState(BASE);
     break;
   case SHOW_INTERVAL:
     changeInterval();
-    setState(SHOW_INTERVAL, lastLoop);
+    setState(SHOW_INTERVAL);
     break;
   case MANUAL_ENTRY:
     count += 2;
     manual += 2;
-    setState(MANUAL_ENTRY, lastLoop);
+    setState(MANUAL_ENTRY);
     break;
   }
 }
@@ -143,10 +138,10 @@ void longClick() {
 
   switch(state) {
   case BASE:
-    setState(MANUAL_ENTRY, lastLoop);
+    setState(MANUAL_ENTRY);
     break;
   case POWERSAVE:
-    setState(BASE, lastLoop);
+    setState(BASE);
     break;
   case SHOW_INTERVAL:
     // ignore
@@ -154,7 +149,7 @@ void longClick() {
   case MANUAL_ENTRY:
     count++;
     manual++;
-    setState(MANUAL_ENTRY, lastLoop);
+    setState(MANUAL_ENTRY);
     break;
   }
 }
@@ -165,13 +160,10 @@ void setup() {
   Serial.begin(9600);
 #endif
 
-  unsigned long t = millis();
-
-  lastLoop = t;
   setInterval(0);
   reset();
 
-  setState(BASE, t);
+  setState(BASE);
 
   setupDisplay();
 
@@ -179,22 +171,15 @@ void setup() {
 }
 
 void loop() {
-  unsigned long t = millis();
+  updateTime();
 
   // handle user input
-  updateClicks(t);
+  updateClicks();
 
-  // update time passed, etc
-  if (t < lastCheck) {
-    overflows++;
-    overflowTime = lastLoop;
-    lastCheck = t;
-  } else if (t - lastCheck >= checkInterval) {
-    count = t >= offset ?
-      (overflowTime / countInterval * overflows) + (t - offset) / countInterval
-      : (overflowTime / countInterval * overflows) - (offset - t) / countInterval;
+  if (pastInterval(&lastCheck,checkInterval)) {
+    count = numberIntervals(now(), countInterval);
     count += manual;
-    lastCheck = t;
+    assignTime(&lastCheck,now());
 
 #ifdef DEBUG
     Serial.print("Time: ");
@@ -208,20 +193,20 @@ void loop() {
   switch(state) {
   case BASE:
 #ifndef SIM
-    if (t >= lastStateChange && t - lastStateChange > 2 * MINUTE) {
-      setState(POWERSAVE, t);
+    if (pastInterval(&lastStateChange, 2 * MINUTE)) {
+      setState(POWERSAVE);
       clearAll();
     }
 #endif
     break;
   case MANUAL_ENTRY:
-    if (t >= lastStateChange && t - lastStateChange > 5 * SECOND) {
-      setState(BASE, t);
+    if (pastInterval(&lastStateChange, 5 * SECOND)) {
+      setState(BASE);
     }
     break;
   case SHOW_INTERVAL:
-    if (t >= lastStateChange && t - lastStateChange > 2 * SECOND) {
-      setState(BASE, t);
+    if (pastInterval(&lastStateChange, 2 * SECOND)) {
+      setState(BASE);
     }
     break;
   default:
@@ -247,7 +232,7 @@ void loop() {
     showInterval(interval);
     break;
   case MANUAL_ENTRY:
-    if (((t - lastStateChange) / 300) % 2 == 0) {
+    if (((diff(now(),&lastStateChange)) / 300) % 2 == 0) {
       showCount(count);
     } else {
       showBytes(0, 0x00);
@@ -255,6 +240,4 @@ void loop() {
     }
     break;
   }
-
-  lastLoop = t;
 }

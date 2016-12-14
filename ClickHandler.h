@@ -12,7 +12,7 @@ extern "C"{
 #endif
 
   void setupClicks(int pin, void (*click)(), void (*doubleClick)(), void (*longClick)());
-  void updateClicks(unsigned long t);
+  void updateClicks();
 
 #ifdef __cplusplus
 }

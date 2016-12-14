@@ -1,4 +1,5 @@
 #include "ClickHandler.h"
+#include "Timeline.h"
 
 #ifndef SIM
 //#define DEBUG
@@ -25,15 +26,13 @@ typedef enum _click_state_t click_state_t;
 int pin;
 
 volatile click_state_t click_state;
-volatile unsigned long lastClickStateChange;
+volatile ts lastClickStateChange;
 
 volatile int clicks;
 volatile int longClicks;
 volatile int doubleClicks;
 
-unsigned long now;
-
-void setState(click_state_t s, unsigned long t) {
+void setState(click_state_t s) {
 #ifdef DEBUG
   switch(s) {
   case BASE:
@@ -51,15 +50,7 @@ void setState(click_state_t s, unsigned long t) {
 #endif
 
   click_state = s;
-  lastClickStateChange = t;
-}
-
-int inInterval(unsigned long start, unsigned long length, unsigned long t) {
-  return t >= start && t - start < length;
-}
-
-int pastInterval(unsigned long start, unsigned long length, unsigned long t) {
-  return t >= start && t - start > length;
+  assignTime(&lastClickStateChange, now());
 }
 
 void rising() {
@@ -72,26 +63,26 @@ void rising() {
     // ignore
     break;
   case HALF_CLICK:
-    if (inInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
-      setState(CLICK, now);
+    if (inInterval(&lastClickStateChange, LONG_CLICK_INTERVAL)) {
+      setState(CLICK);
     }
-    if (pastInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
+    if (pastInterval(&lastClickStateChange, LONG_CLICK_INTERVAL)) {
       longClicks++;
-      setState(BASE, now);
+      setState(BASE);
     }
     break;
   case CLICK:
     // ignore
     break;
   case CLICK_AND_HALF:
-    if (inInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
+    if (inInterval(&lastClickStateChange, LONG_CLICK_INTERVAL)) {
       doubleClicks++;
-      setState(BASE, now);
+      setState(BASE);
     }
-    if (pastInterval(lastClickStateChange, LONG_CLICK_INTERVAL, now)) {
+    if (pastInterval(&lastClickStateChange, LONG_CLICK_INTERVAL)) {
       clicks++;
       longClicks++;
-      setState(BASE, now);
+      setState(BASE);
     }
     break;
   }
@@ -104,14 +95,14 @@ void falling() {
 
   switch(click_state) {
   case BASE:
-    setState(HALF_CLICK, now);
+    setState(HALF_CLICK);
     break;
   case HALF_CLICK:
     // ignore
     break;
   case CLICK:
-    if (!inInterval(lastClickStateChange, MIN_INTERVAL, now)) {
-      setState(CLICK_AND_HALF, now);
+    if (!inInterval(&lastClickStateChange, MIN_INTERVAL)) {
+      setState(CLICK_AND_HALF);
     }
     break;
   case CLICK_AND_HALF:
@@ -124,8 +115,8 @@ void change() {
   int val = digitalRead(pin);
 
   if (click_state == CLICK
-      && pastInterval(lastClickStateChange, DOUBLE_CLICK_INTERVAL, now)) {
-    setState(BASE, now);
+      && pastInterval(&lastClickStateChange, DOUBLE_CLICK_INTERVAL)) {
+    setState(BASE);
     clicks++;
   }
 
@@ -141,20 +132,17 @@ void setupClicks(int _pin, void (*_click)(), void (*_doubleClick)(), void (*_lon
   click = _click;
   doubleClick = _doubleClick;
   longClick = _longClick;
-  now = millis();
-  setState(BASE, now);
+  setState(BASE);
 
   pinMode(pin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(pin), &change, CHANGE);
 }
 
-void updateClicks(unsigned long t) {
-
-  now = t;
+void updateClicks() {
 
   if (click_state == CLICK
-      && pastInterval(lastClickStateChange, DOUBLE_CLICK_INTERVAL, now)) {
-    setState(BASE, now);
+      && pastInterval(&lastClickStateChange, DOUBLE_CLICK_INTERVAL)) {
+    setState(BASE);
     clicks++;
   }
 
