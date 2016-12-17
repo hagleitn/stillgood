@@ -26,21 +26,21 @@ Still good isn't hard to build but requires a fair amount of soldering because o
 
 1. Arduino pro mini, 3v 8Mhz
 
-<img src="https://github.com/hagleitn/stillgood/blob/master/arduino_pro_mini.jpg?raw=true" alt="arduino" width="300"/>
+<img src="https://github.com/hagleitn/stillgood/blob/master/arduino_pro_mini.jpg?raw=true" alt="arduino" width="150"/>
 
 2. 0.36", Common Anode, 2 digit, 7 segment, 10 pin display
 
-<img src="https://github.com/hagleitn/stillgood/blob/master/2_digit_7_segment_display.jpg?raw=true" alt="arduino" width="300"/>
+<img src="https://github.com/hagleitn/stillgood/blob/master/2_digit_7_segment_display.jpg?raw=true" alt="arduino" width="150"/>
 
 3. Push button, momentary switch (6x6mm)
 
-<img src="https://github.com/hagleitn/stillgood/blob/master/button.jpg?raw=true" alt="arduino" width="300"/>
+<img src="https://github.com/hagleitn/stillgood/blob/master/button.jpg?raw=true" alt="arduino" width="150"/>
 
 4. 2 resistors (1k is a good starting point, depending on how bright you want the display)
 
 5. Battery, CR 2032
 
-<img src="https://github.com/hagleitn/stillgood/blob/master/CR2032.jpg?raw=true" alt="arduino" width="300"/>
+<img src="https://github.com/hagleitn/stillgood/blob/master/CR2032.jpg?raw=true" alt="arduino" width="150"/>
 
 6. Wire to connect everything.
 
