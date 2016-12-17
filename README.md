@@ -24,13 +24,8 @@ By default the device counts up by one every day. However stillgood can also cou
 
 Still good isn't hard to build but requires a fair amount of soldering because of the 2 digit 7 segment display. Here's the bill of materials
 
-1. Arduino pro mini, 3v 8Mhz
-
-<img src="https://github.com/hagleitn/stillgood/blob/master/arduino_pro_mini.jpg?raw=true" alt="arduino" width="150"/>
-
-2. 0.36", Common Anode, 2 digit, 7 segment, 10 pin display
-
-<img src="https://github.com/hagleitn/stillgood/blob/master/2_digit_7_segment_display.jpg?raw=true" alt="arduino" width="150"/>
+1. Arduino pro mini, 3v 8Mhz <img src="https://github.com/hagleitn/stillgood/blob/master/arduino_pro_mini.jpg?raw=true" alt="arduino" width="150"/>
+2. 0.36", Common Anode, 2 digit, 7 segment, 10 pin display <img src="https://github.com/hagleitn/stillgood/blob/master/2_digit_7_segment_display.jpg?raw=true" alt="arduino" width="150"/>
 
 3. Push button, momentary switch (6x6mm)
 
