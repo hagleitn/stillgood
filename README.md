@@ -2,6 +2,8 @@
 
 Ever wonder if that piece of fish in the fridge is still good? How long has it been in there? Well, build one of these and stick it on your leftovers. StillGood will keep count of the days for you. No more guessing.
 
+[[https://github.com/hagleitn/stillgood/blob/master/img/afterlight.jpeg|alt=stillgood]]
+
 # Usage
 
 If the display is off a single button press will bring it back to life. The display will turn off every 5 minutes to preserve power. Once activated the display will show the number of days since the last reset. The display only shows two digits, so it will wrap around every 100 days.
