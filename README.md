@@ -30,17 +30,19 @@ Still good isn't hard to build but requires a fair amount of soldering because o
 
 * 0.36", Common Anode, 2 digit, 7 segment, 10 pin display 
 
-<img src="https://github.com/hagleitn/stillgood/blob/master/2_digit_7_segment_display.jpg?raw=true" alt="arduino" width="150"/>
+<img src="https://github.com/hagleitn/stillgood/blob/master/2_digit_7_segment_display.jpg?raw=true" alt="display" width="150"/>
 
 * Push button, momentary switch (6x6mm)
 
-<img src="https://github.com/hagleitn/stillgood/blob/master/button.jpg?raw=true" alt="arduino" width="150"/>
+<img src="https://github.com/hagleitn/stillgood/blob/master/button.jpg?raw=true" alt="button" width="150"/>
 
-* 2 resistors (1k is a good starting point, depending on how bright you want the display)
+* 2 resistors (2k is a good starting point, depending on how bright you want the display)
+
+<img src="https://github.com/hagleitn/stillgood/blob/master/resistor.gif?raw=true" alt="resistor" width="150"/>
 
 * Battery, CR 2032
 
-<img src="https://github.com/hagleitn/stillgood/blob/master/CR2032.jpg?raw=true" alt="arduino" width="150"/>
+<img src="https://github.com/hagleitn/stillgood/blob/master/CR2032.jpg?raw=true" alt="battery" width="150"/>
 
 * Wire to connect everything.
 
