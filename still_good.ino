@@ -183,7 +183,7 @@ void loop() {
 
 #ifdef DEBUG
     Serial.print("Time: ");
-    Serial.print(t);
+    Serial.print(now()->t);
     Serial.print(",\t Passed: ");
     Serial.println(count);
 #endif

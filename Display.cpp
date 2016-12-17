@@ -2,7 +2,7 @@
 
 // pinout display
 // 11 4 5 7 6
-// 9  3 x 8 10
+// 9  x 3 8 10
 
 // digits
 //    1
